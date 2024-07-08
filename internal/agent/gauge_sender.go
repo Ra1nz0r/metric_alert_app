@@ -40,9 +40,6 @@ func SendGaugeOnServer(reportInterval, pollInterval time.Duration) {
 }
 
 func mapPostSender(s *sync.Map, url string) {
-
-	//var res *http.Response
-
 	s.Range(func(k, v any) bool {
 		metType := "gauge"
 		if k == "PollCount" {
@@ -64,22 +61,8 @@ func mapPostSender(s *sync.Map, url string) {
 			return false
 		}
 		defer res.Body.Close()
-
-		//data, err := io.ReadAll(res.Body) // удалить потом
-		//if err != nil {
-		//	log.Fatal(err)
-		//}
-		//fmt.Println(string(data))
-
 		return true
 	})
-
-	//data, err := io.ReadAll(res.Body) // удалить потом
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//fmt.Println(string(data)) // <- до сюда
-	//defer res.Body.Close()
 }
 
 func countGauge(nameMetric *sync.Map, cnt int) {
