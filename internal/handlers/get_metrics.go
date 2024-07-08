@@ -16,13 +16,13 @@ type UpdateMetricsResult struct {
 }
 
 func UpdateMetrics(w http.ResponseWriter, r *http.Request, h storage.MetricService) {
-	codeStatus := http.StatusOK
-
 	mType := chi.URLParam(r, "type")
 	mName := chi.URLParam(r, "name")
 	mValue := chi.URLParam(r, "value")
 
 	var umr UpdateMetricsResult
+
+	codeStatus := http.StatusOK
 
 	switch {
 	case strings.TrimSpace(mName) == "":
