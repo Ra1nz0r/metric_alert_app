@@ -11,11 +11,11 @@ import (
 	"time"
 )
 
-var metricUrl = "http://localhost:8080/update/%s/%s/%d"
+var metricURL = "http://localhost:8080/update/%s/%s/%d"
 
 func SendGaugeOnServer(reportInterval, pollInterval time.Duration) {
 	var nameMetric sync.Map
-	var cnt int = 1
+	cnt := 1
 
 	c := make(chan os.Signal, 1)
 	ticker := time.NewTicker(pollInterval * time.Second)
@@ -30,7 +30,7 @@ func SendGaugeOnServer(reportInterval, pollInterval time.Duration) {
 				countGauge(&nameMetric, cnt)
 				cnt++
 			case <-ticker1.C:
-				mapPostSender(&nameMetric, metricUrl)
+				mapPostSender(&nameMetric, metricURL)
 			}
 		}
 	}()
@@ -46,22 +46,24 @@ func mapPostSender(s *sync.Map, url string) {
 	s.Range(func(k, v any) bool {
 		metType := "gauge"
 
-		resUrl := fmt.Sprintf(url, metType, k, v)
+		resURL := fmt.Sprintf(url, metType, k, v)
 		if k == "PollCount" {
 			metType = "counter"
 		}
 
-		req, err := http.NewRequest("POST", resUrl, nil)
+		req, err := http.NewRequest("POST", resURL, nil)
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		client := &http.Client{}
-		res, err = client.Do(req)
+
+		res, err := client.Do(req)
 		if err != nil {
 			fmt.Println(err)
 			return false
 		}
+		defer res.Body.Close()
 		return true
 	})
 
