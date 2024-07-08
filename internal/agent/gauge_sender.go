@@ -45,11 +45,11 @@ func mapPostSender(s *sync.Map, url string) {
 
 	s.Range(func(k, v any) bool {
 		metType := "gauge"
-
-		resURL := fmt.Sprintf(url, metType, k, v)
 		if k == "PollCount" {
 			metType = "counter"
 		}
+
+		resURL := fmt.Sprintf(url, metType, k, v)
 
 		req, err := http.NewRequest("POST", resURL, nil)
 		if err != nil {
@@ -64,6 +64,13 @@ func mapPostSender(s *sync.Map, url string) {
 			return false
 		}
 		defer res.Body.Close()
+
+		//data, err := io.ReadAll(res.Body) // удалить потом
+		//if err != nil {
+		//	log.Fatal(err)
+		//}
+		//fmt.Println(string(data))
+
 		return true
 	})
 
