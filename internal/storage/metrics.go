@@ -31,13 +31,13 @@ func (m *MemStorage) GetMap() (*map[string]float64, *map[string]int64) {
 func (m *MemStorage) MakeStorageCopy() (*map[string]float64, *map[string]int64) {
 	newStrg := New()
 
-	m.mu.RLocker()
+	m.mu.RLock()
 	for k, v := range m.gauge {
 		newStrg.gauge[k] = v
 	}
 	m.mu.RUnlock()
 
-	m.mu.RLocker()
+	m.mu.RLock()
 	for k, v := range m.counter {
 		newStrg.counter[k] = v
 	}
