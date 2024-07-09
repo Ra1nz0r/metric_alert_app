@@ -70,6 +70,7 @@ func mapSender(url string, m map[string]int64) {
 		}
 		defer res.Body.Close()
 	}
+
 }
 
 func updateMetrics(nameMetric map[string]int64, cnt int64) {
@@ -110,6 +111,8 @@ func updateMetrics(nameMetric map[string]int64, cnt int64) {
 	nameMetric["RandomValue"] = randRange(-999, 999)
 
 	mu.Unlock()
+
+	fmt.Println(nameMetric)
 }
 
 func randRange(min, max int) int64 {
