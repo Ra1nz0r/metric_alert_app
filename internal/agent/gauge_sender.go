@@ -18,8 +18,6 @@ var mu sync.RWMutex
 func SendGaugeOnServer(reportInterval, pollInterval time.Duration) {
 	var m storage.MetricService = storage.New()
 
-	gaugeMap, counterMap := m.GetMap()
-
 	c := make(chan os.Signal, 1)
 	pollTicker := time.NewTicker(pollInterval * time.Second)
 
@@ -33,7 +31,7 @@ func SendGaugeOnServer(reportInterval, pollInterval time.Duration) {
 				updateMetrics(m)
 			case <-reportTicker.C:
 				mu.RLock()
-				mapSender(gaugeMap, counterMap)
+				mapSender(m.MakeStorageCopy())
 				mu.RUnlock()
 			}
 		}

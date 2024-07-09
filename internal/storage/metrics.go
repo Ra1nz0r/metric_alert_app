@@ -4,17 +4,17 @@ import (
 	"sync"
 )
 
-var mu sync.Mutex
-
 type MetricService interface {
 	UpdateGauge(name string, value float64) (*map[string]float64, error)
 	UpdateCounter(name string, value int64) (*map[string]int64, error)
 	GetMap() (*map[string]float64, *map[string]int64)
+	MakeStorageCopy() (*map[string]float64, *map[string]int64)
 }
 
 type MemStorage struct {
 	gauge   map[string]float64
 	counter map[string]int64
+	mu      sync.RWMutex
 }
 
 func New() *MemStorage {
@@ -28,9 +28,27 @@ func (m *MemStorage) GetMap() (*map[string]float64, *map[string]int64) {
 	return &m.gauge, &m.counter
 }
 
+func (m *MemStorage) MakeStorageCopy() (*map[string]float64, *map[string]int64) {
+	newStrg := New()
+
+	m.mu.RLocker()
+	for k, v := range m.gauge {
+		newStrg.gauge[k] = v
+	}
+	m.mu.RUnlock()
+
+	m.mu.RLocker()
+	for k, v := range m.counter {
+		newStrg.counter[k] = v
+	}
+	m.mu.RUnlock()
+
+	return &newStrg.gauge, &newStrg.counter
+}
+
 func (m *MemStorage) UpdateGauge(name string, value float64) (*map[string]float64, error) {
-	mu.Lock()
-	defer mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	m.gauge[name] = value
 
@@ -38,8 +56,8 @@ func (m *MemStorage) UpdateGauge(name string, value float64) (*map[string]float6
 }
 
 func (m *MemStorage) UpdateCounter(name string, value int64) (*map[string]int64, error) {
-	mu.Lock()
-	defer mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	m.counter[name] += value
 
