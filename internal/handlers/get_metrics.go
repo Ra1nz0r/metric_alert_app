@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -28,9 +29,19 @@ func UpdateMetrics(w http.ResponseWriter, r *http.Request, h storage.MetricServi
 	case strings.TrimSpace(mName) == "":
 		codeStatus = http.StatusNotFound
 	case mType == "gauge" && codeStatus != 404:
-		umr.val, umr.err = h.UpdateGauge(mName, mValue)
+		v, err := strconv.ParseFloat(mValue, 64)
+		if err != nil {
+			log.Println("Error from strconv: ", err)
+			return
+		}
+		umr.val, umr.err = h.UpdateGauge(mName, v)
 	case mType == "counter" && codeStatus != 404:
-		umr.val, umr.err = h.UpdateCounter(mName, mValue)
+		v, err := strconv.ParseInt(mValue, 10, 64)
+		if err != nil {
+			log.Println("Error from strconv: ", err)
+			return
+		}
+		umr.val, umr.err = h.UpdateCounter(mName, v)
 	default:
 		codeStatus = http.StatusBadRequest
 	}
