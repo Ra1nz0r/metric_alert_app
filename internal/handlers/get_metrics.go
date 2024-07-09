@@ -31,14 +31,14 @@ func UpdateMetrics(w http.ResponseWriter, r *http.Request, h storage.MetricServi
 	case mType == "gauge" && codeStatus != 404:
 		v, err := strconv.ParseFloat(mValue, 64)
 		if err != nil {
-			log.Println("Error from strconv: ", err)
+			ErrReturn(err, w)
 			return
 		}
 		umr.val, umr.err = h.UpdateGauge(mName, v)
 	case mType == "counter" && codeStatus != 404:
 		v, err := strconv.ParseInt(mValue, 10, 64)
 		if err != nil {
-			log.Println("Error from strconv: ", err)
+			ErrReturn(err, w)
 			return
 		}
 		umr.val, umr.err = h.UpdateCounter(mName, v)

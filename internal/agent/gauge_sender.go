@@ -45,13 +45,12 @@ func SendGaugeOnServer(reportInterval, pollInterval time.Duration) {
 
 func mapSender(gauge *map[string]float64, counter *map[string]int64) {
 	for k, v := range *gauge {
-		makeRequest("http://localhost:8080/update/gauge/%s/%s", k, v)
+		makeRequest("http://localhost:8080/update/gauge/%s/%.2f", k, v)
 	}
 
 	for k, v := range *counter {
 		makeRequest("http://localhost:8080/update/counter/%s/%d", k, v)
 	}
-
 }
 
 func updateMetrics(s storage.MetricService) {
@@ -87,7 +86,7 @@ func updateMetrics(s storage.MetricService) {
 	s.UpdateGauge("TotalAlloc", float64(rtm.TotalAlloc))
 	s.UpdateGauge("RandomValue", randRange(-999, 999))
 
-	s.UpdateCounter("PollCount", int64(randRange(1, 20)))
+	s.UpdateCounter("PollCount", int64((rand.IntN(20-1) + 1)))
 }
 
 func makeRequest(url, metName string, metValue any) {
