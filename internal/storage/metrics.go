@@ -32,16 +32,15 @@ func (m *MemStorage) MakeStorageCopy() (*map[string]float64, *map[string]int64) 
 	newStrg := New()
 
 	m.mu.RLock()
+	defer m.mu.RUnlock()
+
 	for k, v := range m.gauge {
 		newStrg.gauge[k] = v
 	}
-	m.mu.RUnlock()
 
-	m.mu.RLock()
 	for k, v := range m.counter {
 		newStrg.counter[k] = v
 	}
-	m.mu.RUnlock()
 
 	return &newStrg.gauge, &newStrg.counter
 }

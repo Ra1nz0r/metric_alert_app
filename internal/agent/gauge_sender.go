@@ -7,13 +7,10 @@ import (
 	"net/http"
 	"os"
 	"runtime"
-	"sync"
 	"time"
 
 	"github.com/ra1nz0r/metric_alert_app/internal/storage"
 )
-
-var mu sync.RWMutex
 
 func SendGaugeOnServer(reportInterval, pollInterval time.Duration) {
 	var m storage.MetricService = storage.New()
@@ -30,9 +27,7 @@ func SendGaugeOnServer(reportInterval, pollInterval time.Duration) {
 			case <-pollTicker.C:
 				updateMetrics(m)
 			case <-reportTicker.C:
-				mu.RLock()
 				mapSender(m.MakeStorageCopy())
-				mu.RUnlock()
 			}
 		}
 	}()
