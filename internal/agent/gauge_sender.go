@@ -9,28 +9,37 @@ import (
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/ra1nz0r/metric_alert_app/internal/storage"
 )
 
 var metricURL = "http://localhost:8080/update/%s/%s/%d"
 
+var mu sync.RWMutex
+
 func SendGaugeOnServer(reportInterval, pollInterval time.Duration) {
-	var nameMetric sync.Map
+	var m storage.MetricService = storage.New()
+
+	_, counterMap := m.GetMap()
+
 	cnt := 1
 
 	c := make(chan os.Signal, 1)
-	ticker := time.NewTicker(pollInterval * time.Second)
+	pollTicker := time.NewTicker(pollInterval * time.Second)
 
 	d := make(chan os.Signal, 1)
-	ticker1 := time.NewTicker(reportInterval * time.Second)
+	reportTicker := time.NewTicker(reportInterval * time.Second)
 
 	go func() {
 		for {
 			select {
-			case <-ticker.C:
-				countGauge(&nameMetric, cnt)
+			case <-pollTicker.C:
+				updateMetrics(*counterMap, int64(cnt))
 				cnt++
-			case <-ticker1.C:
-				mapPostSender(&nameMetric, metricURL)
+			case <-reportTicker.C:
+				mu.RLock()
+				mapSender(metricURL, *counterMap)
+				mu.RUnlock()
 			}
 		}
 	}()
@@ -39,8 +48,8 @@ func SendGaugeOnServer(reportInterval, pollInterval time.Duration) {
 	<-d
 }
 
-func mapPostSender(s *sync.Map, url string) {
-	s.Range(func(k, v any) bool {
+func mapSender(url string, m map[string]int64) {
+	for k, v := range m {
 		metType := "gauge"
 		if k == "PollCount" {
 			metType = "counter"
@@ -54,52 +63,55 @@ func mapPostSender(s *sync.Map, url string) {
 		}
 
 		client := &http.Client{}
-
 		res, err := client.Do(req)
 		if err != nil {
 			fmt.Println(err)
-			return false
+			return
 		}
 		defer res.Body.Close()
-		return true
-	})
+	}
 }
 
-func countGauge(nameMetric *sync.Map, cnt int) {
+func updateMetrics(nameMetric map[string]int64, cnt int64) {
 	var rtm runtime.MemStats
 	runtime.ReadMemStats(&rtm)
 
-	nameMetric.Store("BuckHashSys", rtm.BuckHashSys)
-	nameMetric.Store("Frees", rtm.Frees)
-	nameMetric.Store("GCCPUFraction", int(rtm.GCCPUFraction))
-	nameMetric.Store("GCSys", rtm.GCSys)
-	nameMetric.Store("HeapAlloc", rtm.HeapAlloc)
-	nameMetric.Store("HeapIdle", rtm.HeapIdle)
-	nameMetric.Store("HeapInuse", rtm.HeapInuse)
-	nameMetric.Store("HeapObjects", rtm.HeapObjects)
-	nameMetric.Store("HeapReleased", rtm.HeapReleased)
-	nameMetric.Store("HeapSys", rtm.HeapSys)
-	nameMetric.Store("LastGC", rtm.LastGC)
-	nameMetric.Store("Lookups", rtm.Lookups)
-	nameMetric.Store("MCacheInuse", rtm.MCacheInuse)
-	nameMetric.Store("MCacheSys", rtm.MCacheSys)
-	nameMetric.Store("MSpanInuse", rtm.MSpanInuse)
-	nameMetric.Store("MSpanSys", rtm.MSpanSys)
-	nameMetric.Store("Mallocs", rtm.Mallocs)
-	nameMetric.Store("NextGC", rtm.NextGC)
-	nameMetric.Store("NumForcedGC", rtm.NumForcedGC)
-	nameMetric.Store("NumGC", rtm.NumGC)
-	nameMetric.Store("OtherSys", rtm.OtherSys)
-	nameMetric.Store("PauseTotalNs", rtm.PauseTotalNs)
-	nameMetric.Store("StackInuse", rtm.StackInuse)
-	nameMetric.Store("StackSys", rtm.StackSys)
-	nameMetric.Store("Sys", rtm.Sys)
-	nameMetric.Store("TotalAlloc", rtm.TotalAlloc)
+	mu.Lock()
 
-	nameMetric.Store("PollCount", cnt)
-	nameMetric.Store("RandomValue", randRange(-999, 999))
+	nameMetric["Alloc"] = int64(rtm.Alloc)
+	nameMetric["BuckHashSys"] = int64(rtm.BuckHashSys)
+	nameMetric["Frees"] = int64(rtm.Frees)
+	nameMetric["GCCPUFraction"] = int64(rtm.GCCPUFraction)
+	nameMetric["GCSys"] = int64(rtm.GCSys)
+	nameMetric["HeapAlloc"] = int64(rtm.HeapAlloc)
+	nameMetric["HeapIdle"] = int64(rtm.HeapIdle)
+	nameMetric["HeapInuse"] = int64(rtm.HeapInuse)
+	nameMetric["HeapObjects"] = int64(rtm.HeapObjects)
+	nameMetric["HeapReleased"] = int64(rtm.HeapReleased)
+	nameMetric["HeapSys"] = int64(rtm.HeapSys)
+	nameMetric["LastGC"] = int64(rtm.LastGC)
+	nameMetric["Lookups"] = int64(rtm.Lookups)
+	nameMetric["MCacheInuse"] = int64(rtm.MCacheInuse)
+	nameMetric["MCacheSys"] = int64(rtm.MCacheSys)
+	nameMetric["MSpanInuse"] = int64(rtm.MSpanInuse)
+	nameMetric["MSpanSys"] = int64(rtm.MSpanSys)
+	nameMetric["Mallocs"] = int64(rtm.Mallocs)
+	nameMetric["NextGC"] = int64(rtm.NextGC)
+	nameMetric["NumForcedGC"] = int64(rtm.NumForcedGC)
+	nameMetric["NumGC"] = int64(rtm.NumGC)
+	nameMetric["OtherSys"] = int64(rtm.OtherSys)
+	nameMetric["PauseTotalNs"] = int64(rtm.PauseTotalNs)
+	nameMetric["StackInuse"] = int64(rtm.StackInuse)
+	nameMetric["StackSys"] = int64(rtm.StackSys)
+	nameMetric["Sys"] = int64(rtm.Sys)
+	nameMetric["TotalAlloc"] = int64(rtm.TotalAlloc)
+
+	nameMetric["PollCount"] = cnt
+	nameMetric["RandomValue"] = randRange(-999, 999)
+
+	mu.Unlock()
 }
 
-func randRange(min, max int) int {
-	return rand.IntN(max-min) + min
+func randRange(min, max int) int64 {
+	return int64(rand.IntN(max-min) + min)
 }
