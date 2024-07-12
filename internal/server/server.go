@@ -27,6 +27,10 @@ func Run() {
 		hd.UpdateMetrics(w, r, h)
 	})
 
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		hd.GetAllMetrics(w, r, h)
+	})
+
 	serverLink := `0.0.0.0:8080`
 	log.Printf("Starting server on: '%s'", serverLink)
 

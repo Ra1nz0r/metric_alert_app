@@ -6,6 +6,16 @@ tasks:
     desc: "Runs all '.go' files."
     cmds:
       - go run ./...
+
+  run_s: # название задачи для запуска
+    desc: "Runs all '.go' files."
+    cmds:
+      - go run ./cmd/server
+  
+  run_a: # название задачи для запуска
+    desc: "Runs all '.go' files."
+    cmds:
+      - go run ./cmd/agent
       
   test: # название задачи для запуска
     desc: "Runs all test files without cache and with info."

@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -11,17 +9,10 @@ import (
 	"github.com/ra1nz0r/metric_alert_app/internal/storage"
 )
 
-type UpdateMetricsResult struct {
-	val interface{}
-	err error
-}
-
 func UpdateMetrics(w http.ResponseWriter, r *http.Request, h storage.MetricService) {
 	mType := chi.URLParam(r, "type")
 	mName := chi.URLParam(r, "name")
 	mValue := chi.URLParam(r, "value")
-
-	var umr UpdateMetricsResult
 
 	codeStatus := http.StatusOK
 
@@ -34,24 +25,19 @@ func UpdateMetrics(w http.ResponseWriter, r *http.Request, h storage.MetricServi
 			ErrReturn(err, w)
 			return
 		}
-		umr.val, umr.err = h.UpdateGauge(mName, v)
+		h.UpdateGauge(mName, v)
 	case mType == "counter" && codeStatus != 404:
 		v, err := strconv.ParseInt(mValue, 10, 64)
 		if err != nil {
 			ErrReturn(err, w)
 			return
 		}
-		umr.val, umr.err = h.UpdateCounter(mName, v)
+		h.UpdateCounter(mName, v)
 	default:
 		codeStatus = http.StatusBadRequest
 	}
 
-	if umr.err != nil {
-		ErrReturn(umr.err, w)
-		return
-	}
-
-	res, errJSON := json.Marshal(umr.val)
+	/* res, errJSON := json.Marshal(umr.val)
 	if errJSON != nil {
 		http.Error(w, errJSON.Error(), http.StatusInternalServerError)
 		//logerr.ErrEvent("failed attempt json-marshal response", errJSON)
@@ -66,5 +52,7 @@ func UpdateMetrics(w http.ResponseWriter, r *http.Request, h storage.MetricServi
 	if _, errWrite := w.Write([]byte(res)); errWrite != nil {
 		log.Print("failed attempt WRITE response")
 		return
-	}
+	} */
+
+	w.WriteHeader(codeStatus)
 }

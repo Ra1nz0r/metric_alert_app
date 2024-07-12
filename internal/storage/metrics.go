@@ -5,10 +5,11 @@ import (
 )
 
 type MetricService interface {
-	UpdateGauge(name string, value float64) (*map[string]float64, error)
-	UpdateCounter(name string, value int64) (*map[string]int64, error)
+	AllMetricsFromStorage() map[string]any
 	GetMap() (*map[string]float64, *map[string]int64)
 	MakeStorageCopy() (*map[string]float64, *map[string]int64)
+	UpdateGauge(name string, value float64)
+	UpdateCounter(name string, value int64)
 }
 
 type MemStorage struct {
@@ -28,6 +29,23 @@ func (m *MemStorage) GetMap() (*map[string]float64, *map[string]int64) {
 	return &m.gauge, &m.counter
 }
 
+func (m *MemStorage) AllMetricsFromStorage() map[string]any {
+	zz := make(map[string]any)
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for k, v := range m.gauge {
+		zz[k] = v
+	}
+
+	for k, v := range m.counter {
+		zz[k] = v
+	}
+
+	return zz
+}
+
 func (m *MemStorage) MakeStorageCopy() (*map[string]float64, *map[string]int64) {
 	newStrg := New()
 
@@ -45,20 +63,20 @@ func (m *MemStorage) MakeStorageCopy() (*map[string]float64, *map[string]int64) 
 	return &newStrg.gauge, &newStrg.counter
 }
 
-func (m *MemStorage) UpdateGauge(name string, value float64) (*map[string]float64, error) {
+func (m *MemStorage) UpdateGauge(name string, value float64) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	m.gauge[name] = value
 
-	return &m.gauge, nil
+	return
 }
 
-func (m *MemStorage) UpdateCounter(name string, value int64) (*map[string]int64, error) {
+func (m *MemStorage) UpdateCounter(name string, value int64) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	m.counter[name] += value
 
-	return &m.counter, nil
+	return
 }
