@@ -24,11 +24,14 @@ func Run() {
 	r.Handle("/", nil)
 
 	r.Post("/update/{type}/{name}/{value}", func(w http.ResponseWriter, r *http.Request) {
-		hd.UpdateMetrics(w, r, h)
+		hd.UpdateMetrics(h, w, r)
 	})
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		hd.GetAllMetrics(w, r, h)
+		hd.GetAllMetrics(h, w, r)
+	})
+	r.Get("/value/{type}/{name}", func(w http.ResponseWriter, r *http.Request) {
+		hd.GetMetricByName(h, w, r)
 	})
 
 	serverLink := `0.0.0.0:8080`
