@@ -8,7 +8,7 @@ import (
 type MetricService interface {
 	AllMetricsFromStorage() map[string]any
 	GetMap() (*map[string]float64, *map[string]int64)
-	GetMetricVal(mType, mName string) (map[string]any, error)
+	GetMetricVal(mType, mName string) (any, error)
 	MakeStorageCopy() (*map[string]float64, *map[string]int64)
 	UpdateGauge(name string, value float64)
 	UpdateCounter(name string, value int64)
@@ -48,21 +48,17 @@ func (m *MemStorage) GetMap() (*map[string]float64, *map[string]int64) {
 	return &m.gauge, &m.counter
 }
 
-func (m *MemStorage) GetMetricVal(mType, mName string) (map[string]any, error) {
-	res := make(map[string]any)
-
+func (m *MemStorage) GetMetricVal(mType, mName string) (any, error) {
 	switch mType {
 	case "gauge":
 		gVal, ok := m.gauge[mName]
 		if ok {
-			res[mName] = gVal
-			return res, nil
+			return gVal, nil
 		}
 	case "counter":
 		cVal, ok := m.counter[mName]
 		if ok {
-			res[mName] = cVal
-			return res, nil
+			return cVal, nil
 		}
 	default:
 		return nil, fmt.Errorf("type not found")
