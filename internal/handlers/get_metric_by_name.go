@@ -13,15 +13,13 @@ func GetMetricByName(h storage.MetricService, w http.ResponseWriter, r *http.Req
 	mType := chi.URLParam(r, "type")
 	mName := chi.URLParam(r, "name")
 
-	codeStatus := http.StatusOK
-
-	ans, err := h.GetMetricVal(mType, mName)
-	if err != nil {
-		ErrReturn(err, http.StatusNotFound, w)
+	res, errGMV := h.GetMetricVal(mType, mName)
+	if errGMV != nil {
+		ErrReturn(errGMV, http.StatusNotFound, w)
 		return
 	}
 
-	res, errJSON := json.Marshal(ans)
+	js, errJSON := json.Marshal(res)
 	if errJSON != nil {
 		http.Error(w, errJSON.Error(), http.StatusInternalServerError)
 		//logerr.ErrEvent("failed attempt json-marshal response", errJSON)
@@ -31,9 +29,9 @@ func GetMetricByName(h storage.MetricService, w http.ResponseWriter, r *http.Req
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
-	w.WriteHeader(codeStatus)
+	w.WriteHeader(http.StatusOK)
 
-	if _, errWrite := w.Write([]byte(res)); errWrite != nil {
+	if _, errWrite := w.Write([]byte(js)); errWrite != nil {
 		log.Print("failed attempt WRITE response")
 		return
 	}
