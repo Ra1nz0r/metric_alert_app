@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/ra1nz0r/metric_alert_app/internal/flags"
 	"github.com/ra1nz0r/metric_alert_app/internal/storage"
 )
 
@@ -38,11 +39,13 @@ func SendGaugeOnServer(reportInterval, pollInterval time.Duration) {
 
 func mapSender(gauge *map[string]float64, counter *map[string]int64) {
 	for k, v := range *gauge {
-		makeRequest("http://localhost:8080/update/gauge/%s/%.2f", k, v)
+		resURL := fmt.Sprintf("http://%s/update/gauge/%s/%.2f", flags.DefServerAddress, k, v)
+		makeRequest(resURL)
 	}
 
 	for k, v := range *counter {
-		makeRequest("http://localhost:8080/update/counter/%s/%d", k, v)
+		resURL := fmt.Sprintf("http://%s/update/counter/%s/%d", flags.DefServerAddress, k, v)
+		makeRequest(resURL)
 	}
 }
 
@@ -82,9 +85,7 @@ func updateMetrics(s storage.MetricService) {
 	s.UpdateCounter("PollCount", int64((rand.IntN(20-1) + 1)))
 }
 
-func makeRequest(url, metName string, metValue any) {
-	resURL := fmt.Sprintf(url, metName, metValue)
-
+func makeRequest(resURL string) {
 	req, err := http.NewRequest("POST", resURL, nil)
 	if err != nil {
 		log.Fatal(err)

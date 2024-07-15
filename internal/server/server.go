@@ -11,13 +11,13 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/ra1nz0r/metric_alert_app/internal/flags"
 	hd "github.com/ra1nz0r/metric_alert_app/internal/handlers"
 	"github.com/ra1nz0r/metric_alert_app/internal/storage"
 )
 
 func Run() {
 	var h storage.MetricService = storage.New()
-
 	r := chi.NewRouter()
 
 	log.Println("Running handlers.")
@@ -34,11 +34,11 @@ func Run() {
 		hd.GetMetricByName(h, w, r)
 	})
 
-	serverLink := `0.0.0.0:8080`
-	log.Printf("Starting server on: '%s'", serverLink)
+	flags.ServerFlags()
+	log.Printf("Starting server on: '%s'", flags.DefServerAddress)
 
 	srv := http.Server{
-		Addr:         serverLink,
+		Addr:         flags.DefServerAddress,
 		Handler:      r,
 		ReadTimeout:  5 * time.Minute,
 		WriteTimeout: 5 * time.Minute,
