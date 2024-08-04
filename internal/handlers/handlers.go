@@ -21,11 +21,26 @@ func NewHandlers(sMS storage.MetricService) *HandlerService {
 }
 
 // Выводит все метрики из локального хранилища при GET запросе.
-// Принимает интерфейс, с реализованным методом чтения всех метрик из
-// локального хранилища и объединения в одно целое.
+// Вызывает метод интерфейса, который возвращает копию локального хранилища.
 // Формат JSON, в виде {"Alloc":146464,"Frees":10,...}.
 func (hs *HandlerService) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
-	res, errJSON := json.Marshal(hs.sMS.AllMetricsFromStorage())
+	res := make(map[string]any)
+
+	g, c := hs.sMS.MakeStorageCopy()
+
+	if g != nil {
+		for k, v := range *g {
+			res[k] = v
+		}
+	}
+
+	if c != nil {
+		for k, v := range *c {
+			res[k] = v
+		}
+	}
+
+	ans, errJSON := json.Marshal(res)
 	if errJSON != nil {
 		http.Error(w, errJSON.Error(), http.StatusInternalServerError)
 		//logerr.ErrEvent("failed attempt json-marshal response", errJSON)
@@ -37,7 +52,7 @@ func (hs *HandlerService) GetAllMetrics(w http.ResponseWriter, r *http.Request) 
 
 	w.WriteHeader(http.StatusOK)
 
-	if _, errWrite := w.Write([]byte(res)); errWrite != nil {
+	if _, errWrite := w.Write([]byte(ans)); errWrite != nil {
 		log.Print("failed attempt WRITE response")
 		return
 	}
@@ -51,17 +66,34 @@ func (hs *HandlerService) GetMetricByName(w http.ResponseWriter, r *http.Request
 	mType := chi.URLParam(r, "type")
 	mName := chi.URLParam(r, "name")
 
-	res, errGMV := hs.sMS.GetMetricVal(mType, mName)
-	if errGMV != nil {
-		ErrReturn(errGMV, http.StatusNotFound, w)
-		return
+	g, c := hs.sMS.MakeStorageCopy()
+
+	var resVal any
+
+	switch mType {
+	case "gauge":
+		gVal, ok := (*g)[mName]
+		if ok {
+			resVal = gVal
+			break
+		}
+		resVal = fmt.Errorf("metric not found")
+	case "counter":
+		cVal, ok := (*c)[mName]
+		if ok {
+			resVal = cVal
+			break
+		}
+		resVal = fmt.Errorf("metric not found")
+	default:
+		resVal = fmt.Errorf("type not found")
 	}
 
 	w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
 
 	w.WriteHeader(http.StatusOK)
 
-	if _, errWrite := w.Write([]byte(fmt.Sprintf("%v", res))); errWrite != nil {
+	if _, errWrite := w.Write([]byte(fmt.Sprintf("%v", resVal))); errWrite != nil {
 		log.Print("failed attempt WRITE response")
 		return
 	}

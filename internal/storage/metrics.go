@@ -9,8 +9,6 @@ import (
 
 // Интерфейс для взаимодействия с локальным хранилищем.
 type MetricService interface {
-	AllMetricsFromStorage() *map[string]any
-	GetMap() (*map[string]float64, *map[string]int64)
 	GetMetricVal(mType, mName string) (any, error)
 	MakeStorageCopy() (*map[string]float64, *map[string]int64)
 	UpdateGauge(name string, value float64)
@@ -30,29 +28,6 @@ func New() *MemStorage {
 		gauge:   make(map[string]float64),
 		counter: make(map[string]int64),
 	}
-}
-
-// Создает и возвращает указатель на новое хранилище, заполняя её
-// всеми хранящимися метриками в локальном хранилище.
-func (ms *MemStorage) AllMetricsFromStorage() *map[string]any {
-	res := make(map[string]any)
-
-	ms.mu.Lock()
-	defer ms.mu.Unlock()
-
-	for k, v := range ms.gauge {
-		res[k] = float64(v)
-	}
-
-	for k, v := range ms.counter {
-		res[k] = int64(v)
-	}
-
-	return &res
-}
-
-func (ms *MemStorage) GetMap() (*map[string]float64, *map[string]int64) {
-	return &ms.gauge, &ms.counter
 }
 
 // Получает и возвращает значение метрики, в зависимости от указанного

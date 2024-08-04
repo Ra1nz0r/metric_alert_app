@@ -5,8 +5,8 @@ import (
 	"log"
 	"math/rand/v2"
 	"net/http"
-	"os"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/ra1nz0r/metric_alert_app/internal/config"
@@ -15,6 +15,7 @@ import (
 
 type SenderStorage struct {
 	sMS storage.MetricService
+	wg  sync.WaitGroup
 }
 
 func NewSender(sMS storage.MetricService) *SenderStorage {
@@ -26,15 +27,13 @@ func NewSender(sMS storage.MetricService) *SenderStorage {
 // Принимает интерфейс, с созданным новым и инициализированным хранилищем,
 // где реализованы методы для работы с ним.
 func (s *SenderStorage) SendMetricsOnServer(reportInterval, pollInterval time.Duration) {
-	// Канал дя обновления метрик с указанной частотой.
-	p := make(chan os.Signal, 1)
-	pollTicker := time.NewTicker(pollInterval * time.Second)
 
-	// Канал дя отправки метрик с указанной частотой.
-	r := make(chan os.Signal, 1)
+	pollTicker := time.NewTicker(pollInterval * time.Second)
 	reportTicker := time.NewTicker(reportInterval * time.Second)
 
+	s.wg.Add(1)
 	go func() {
+		defer s.wg.Done()
 		for {
 			select {
 			case <-pollTicker.C:
@@ -45,9 +44,7 @@ func (s *SenderStorage) SendMetricsOnServer(reportInterval, pollInterval time.Du
 			}
 		}
 	}()
-
-	<-p
-	<-r
+	s.wg.Wait()
 }
 
 // По указанному хосту, отправляет через POST запрос все метрики из локального хранилища на сервер.

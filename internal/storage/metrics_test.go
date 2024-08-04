@@ -8,65 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAllMetricsFromStorage(t *testing.T) {
-	tests := []struct {
-		name string
-		ms   *MemStorage
-		want *map[string]any
-	}{
-		{
-			name: "Test 1. Correct value.",
-			ms: &MemStorage{
-				gauge: map[string]float64{
-					"Alloc":       4.51,
-					"LastGC":      62.2,
-					"RandomValue": 32.938,
-				},
-				counter: map[string]int64{
-					"PollCount": 782,
-				},
-			},
-			want: &map[string]any{
-				"Alloc":       4.51,
-				"LastGC":      62.2,
-				"RandomValue": 32.938,
-				"PollCount":   int64(782),
-			},
-		},
-		{
-			name: "Test 2. Negative values.",
-			ms: &MemStorage{
-				gauge: map[string]float64{
-					"Alloc":       -4.51,
-					"LastGC":      -62.2,
-					"RandomValue": -32.938,
-				},
-				counter: map[string]int64{
-					"PollCount": -782,
-				},
-			},
-			want: &map[string]any{
-				"Alloc":       -4.51,
-				"LastGC":      -62.2,
-				"RandomValue": -32.938,
-				"PollCount":   int64(-782),
-			},
-		},
-		{
-			name: "Test 3. Nil value.",
-			ms:   &MemStorage{},
-			want: &map[string]any{},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.ms.AllMetricsFromStorage(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("MemStorage.AllMetricsFromStorage() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestGetMetricVal(t *testing.T) {
 	type args struct {
 		mType string

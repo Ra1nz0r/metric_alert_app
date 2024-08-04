@@ -41,9 +41,10 @@ func TestGetAllMetrics(t *testing.T) {
 
 			nh := NewHandlers(mock)
 
-			mock.EXPECT().AllMetricsFromStorage().Times(1)
+			mock.EXPECT().MakeStorageCopy().Times(1)
 
 			h := http.HandlerFunc(nh.GetAllMetrics)
+
 			h(tt.args.w, tt.args.r)
 
 			result := tt.args.w.Result()

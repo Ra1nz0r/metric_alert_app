@@ -33,35 +33,6 @@ func (m *MockMetricService) EXPECT() *MockMetricServiceMockRecorder {
 	return m.recorder
 }
 
-// AllMetricsFromStorage mocks base method.
-func (m *MockMetricService) AllMetricsFromStorage() *map[string]any {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AllMetricsFromStorage")
-	ret0, _ := ret[0].(*map[string]any)
-	return ret0
-}
-
-// AllMetricsFromStorage indicates an expected call of AllMetricsFromStorage.
-func (mr *MockMetricServiceMockRecorder) AllMetricsFromStorage() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllMetricsFromStorage", reflect.TypeOf((*MockMetricService)(nil).AllMetricsFromStorage))
-}
-
-// GetMap mocks base method.
-func (m *MockMetricService) GetMap() (*map[string]float64, *map[string]int64) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMap")
-	ret0, _ := ret[0].(*map[string]float64)
-	ret1, _ := ret[1].(*map[string]int64)
-	return ret0, ret1
-}
-
-// GetMap indicates an expected call of GetMap.
-func (mr *MockMetricServiceMockRecorder) GetMap() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMap", reflect.TypeOf((*MockMetricService)(nil).GetMap))
-}
-
 // GetMetricVal mocks base method.
 func (m *MockMetricService) GetMetricVal(mType, mName string) (any, error) {
 	m.ctrl.T.Helper()

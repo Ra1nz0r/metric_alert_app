@@ -18,10 +18,9 @@ import (
 
 // Запускает агент, который будет принимать метрики от агента.
 func Run() {
-	var ms storage.MetricService = storage.New()
 	r := chi.NewRouter()
 
-	hs := hd.NewHandlers(ms)
+	hs := hd.NewHandlers(storage.New())
 
 	log.Println("Running handlers.")
 	r.Handle("/", nil)
