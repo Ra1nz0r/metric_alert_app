@@ -69,12 +69,14 @@ func (hs *HandlerService) GetMetricByName(w http.ResponseWriter, r *http.Request
 	g, c := hs.sMS.MakeStorageCopy()
 
 	var resVal any
+	statCode := http.StatusNotFound
 
 	switch mType {
 	case "gauge":
 		gVal, ok := (*g)[mName]
 		if ok {
 			resVal = gVal
+			statCode = http.StatusOK
 			break
 		}
 		resVal = fmt.Errorf("metric not found")
@@ -82,6 +84,7 @@ func (hs *HandlerService) GetMetricByName(w http.ResponseWriter, r *http.Request
 		cVal, ok := (*c)[mName]
 		if ok {
 			resVal = cVal
+			statCode = http.StatusOK
 			break
 		}
 		resVal = fmt.Errorf("metric not found")
@@ -91,7 +94,7 @@ func (hs *HandlerService) GetMetricByName(w http.ResponseWriter, r *http.Request
 
 	w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(statCode)
 
 	if _, errWrite := w.Write([]byte(fmt.Sprintf("%v", resVal))); errWrite != nil {
 		log.Print("failed attempt WRITE response")
