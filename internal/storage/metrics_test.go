@@ -1,95 +1,11 @@
 package storage
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestGetMetricVal(t *testing.T) {
-	type args struct {
-		mType string
-		mName string
-	}
-	tests := []struct {
-		name    string
-		ms      *MemStorage
-		args    args
-		want    any
-		wantErr bool
-	}{
-		{
-			name: "Test 1. Correct gauge.",
-			ms: &MemStorage{
-				gauge: map[string]float64{
-					"Alloc": 4.51,
-				},
-			},
-			args: args{
-				mType: "gauge",
-				mName: "Alloc",
-			},
-			want:    4.51,
-			wantErr: false,
-		},
-		{
-			name: "Test 2. Correct counter.",
-			ms: &MemStorage{
-				counter: map[string]int64{
-					"PollCount": 22,
-				},
-			},
-			args: args{
-				mType: "counter",
-				mName: "PollCount",
-			},
-			want:    int64(22),
-			wantErr: false,
-		},
-		{
-			name: "Test 3. Incorrect name.",
-			ms: &MemStorage{
-				gauge: map[string]float64{
-					"Alloc": 4.51,
-				},
-			},
-			args: args{
-				mType: "gauge",
-				mName: "incAlloc",
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "Test 4. Incorrect type.",
-			ms: &MemStorage{
-				gauge: map[string]float64{
-					"Alloc": 4.51,
-				},
-			},
-			args: args{
-				mType: "incGauge",
-				mName: "Alloc",
-			},
-			want:    nil,
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.ms.GetMetricVal(tt.args.mType, tt.args.mName)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("MemStorage.GetMetricVal() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("MemStorage.GetMetricVal() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
 
 func TestMakeStorageCopy(t *testing.T) {
 	t.Run("Test copy.", func(t *testing.T) {

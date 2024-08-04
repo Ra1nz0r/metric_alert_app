@@ -28,16 +28,12 @@ func (hs *HandlerService) GetAllMetrics(w http.ResponseWriter, r *http.Request) 
 
 	g, c := hs.sMS.MakeStorageCopy()
 
-	if g != nil {
-		for k, v := range *g {
-			res[k] = v
-		}
+	for k, v := range *g {
+		res[k] = v
 	}
 
-	if c != nil {
-		for k, v := range *c {
-			res[k] = v
-		}
+	for k, v := range *c {
+		res[k] = v
 	}
 
 	ans, errJSON := json.Marshal(res)
@@ -69,32 +65,30 @@ func (hs *HandlerService) GetMetricByName(w http.ResponseWriter, r *http.Request
 	g, c := hs.sMS.MakeStorageCopy()
 
 	var resVal any
-	statCode := http.StatusNotFound
 
 	switch mType {
 	case "gauge":
 		gVal, ok := (*g)[mName]
-		if ok {
-			resVal = gVal
-			statCode = http.StatusOK
-			break
+		if !ok {
+			ErrReturn(fmt.Errorf("metric not found"), http.StatusNotFound, w)
+			return
 		}
-		resVal = fmt.Errorf("metric not found")
+		resVal = gVal
 	case "counter":
 		cVal, ok := (*c)[mName]
-		if ok {
-			resVal = cVal
-			statCode = http.StatusOK
-			break
+		if !ok {
+			ErrReturn(fmt.Errorf("metric not found"), http.StatusNotFound, w)
+			return
 		}
-		resVal = fmt.Errorf("metric not found")
+		resVal = cVal
 	default:
-		resVal = fmt.Errorf("type not found")
+		ErrReturn(fmt.Errorf("type not found"), http.StatusNotFound, w)
+		return
 	}
 
 	w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
 
-	w.WriteHeader(statCode)
+	w.WriteHeader(http.StatusOK)
 
 	if _, errWrite := w.Write([]byte(fmt.Sprintf("%v", resVal))); errWrite != nil {
 		log.Print("failed attempt WRITE response")

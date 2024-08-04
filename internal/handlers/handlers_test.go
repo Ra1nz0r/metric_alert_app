@@ -20,16 +20,20 @@ func TestGetAllMetrics(t *testing.T) {
 		r  *http.Request
 	}
 	tests := []struct {
-		name string
-		args args
+		name        string
+		args        args
+		tGaugeStr   *map[string]float64
+		tCounterStr *map[string]int64
 	}{
 		{
-			name: "test1",
+			name: "Test 1.",
 			args: args{
 				ms: storage.New(),
 				w:  httptest.NewRecorder(),
 				r:  httptest.NewRequest(http.MethodGet, "/", nil),
 			},
+			tGaugeStr:   &map[string]float64{"Alloc": 4.51},
+			tCounterStr: &map[string]int64{"PollCount": 73},
 		},
 	}
 	for _, tt := range tests {
@@ -41,7 +45,7 @@ func TestGetAllMetrics(t *testing.T) {
 
 			nh := NewHandlers(mock)
 
-			mock.EXPECT().MakeStorageCopy().Times(1)
+			mock.EXPECT().MakeStorageCopy().Return(tt.tGaugeStr, tt.tCounterStr).Times(1)
 
 			h := http.HandlerFunc(nh.GetAllMetrics)
 
@@ -57,6 +61,109 @@ func TestGetAllMetrics(t *testing.T) {
 	}
 }
 
+func TestGetMetricsByName(t *testing.T) {
+	type args struct {
+		mType string
+		mName string
+	}
+	tests := []struct {
+		name        string
+		tGaugeStr   *map[string]float64
+		tCounterStr *map[string]int64
+		args        args
+		wantCode    int
+		wantError   error
+		wantHeader  string
+	}{
+		{
+			name:      "Test 1. Gauge metric.",
+			tGaugeStr: &map[string]float64{"Alloc": 4.51},
+			args: args{
+				mType: "gauge",
+				mName: "Alloc",
+			},
+			wantCode:   200,
+			wantError:  nil,
+			wantHeader: "text/plain; charset=UTF-8",
+		},
+		{
+			name:        "Test 2. Counter metric.",
+			tCounterStr: &map[string]int64{"PollCount": 73},
+			args: args{
+				mType: "counter",
+				mName: "PollCount",
+			},
+			wantCode:   200,
+			wantError:  nil,
+			wantHeader: "text/plain; charset=UTF-8",
+		},
+		{
+			name:        "Test 3. Incorrect metric type.",
+			tCounterStr: &map[string]int64{"PollCount": 73},
+			args: args{
+				mType: "incType",
+				mName: "PollCount",
+			},
+			wantCode:   404,
+			wantError:  fmt.Errorf("type not found"),
+			wantHeader: "application/json; charset=UTF-8",
+		},
+		{
+			name:      "Test 4. Incorrect gauge metric name.",
+			tGaugeStr: &map[string]float64{"Alloc": 7.3},
+			args: args{
+				mType: "gauge",
+				mName: "incAlloc",
+			},
+			wantCode:   404,
+			wantError:  fmt.Errorf("metric not found"),
+			wantHeader: "application/json; charset=UTF-8",
+		},
+		{
+			name:        "Test 5. Incorrect counter metric name.",
+			tCounterStr: &map[string]int64{"PollCount": 7},
+			args: args{
+				mType: "counter",
+				mName: "incCount",
+			},
+			wantCode:   404,
+			wantError:  fmt.Errorf("metric not found"),
+			wantHeader: "application/json; charset=UTF-8",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mock := mocks.NewMockMetricService(ctrl)
+
+			nh := NewHandlers(mock)
+
+			mock.EXPECT().MakeStorageCopy().Return(tt.tGaugeStr, tt.tCounterStr).Times(1)
+
+			router := chi.NewRouter()
+
+			router.Get("/value/{type}/{name}", nh.GetMetricByName)
+
+			reqURL := fmt.Sprintf("/value/%s/%s", tt.args.mType, tt.args.mName)
+
+			req := httptest.NewRequest(http.MethodGet, reqURL, nil)
+
+			w := httptest.NewRecorder()
+
+			router.ServeHTTP(w, req)
+
+			result := w.Result()
+
+			assert.Equal(t, tt.wantCode, result.StatusCode)
+			assert.Equal(t, tt.wantHeader, result.Header.Get("Content-Type"))
+
+			result.Body.Close()
+		})
+	}
+}
+
 func TestUpdateMetrics(t *testing.T) {
 	type args struct {
 		mType  string
@@ -65,17 +172,12 @@ func TestUpdateMetrics(t *testing.T) {
 	}
 	tests := []struct {
 		name     string
-		w        *httptest.ResponseRecorder
-		req      *http.Request
-		router   *chi.Mux
 		args     args
 		reqURL   string
 		wantCode int
 	}{
 		{
-			name:   "Test 1. Correct gauge metric.",
-			w:      httptest.NewRecorder(),
-			router: chi.NewRouter(),
+			name: "Test 1. Correct gauge metric.",
 			args: args{
 				mType:  "gauge",
 				mName:  "Alloc",
@@ -84,9 +186,7 @@ func TestUpdateMetrics(t *testing.T) {
 			wantCode: 200,
 		},
 		{
-			name:   "Test 2. Correct counter metric.",
-			w:      httptest.NewRecorder(),
-			router: chi.NewRouter(),
+			name: "Test 2. Correct counter metric.",
 			args: args{
 				mType:  "counter",
 				mName:  "PollCount",
@@ -95,9 +195,7 @@ func TestUpdateMetrics(t *testing.T) {
 			wantCode: 200,
 		},
 		{
-			name:   "Test 3. Empty metric name.",
-			w:      httptest.NewRecorder(),
-			router: chi.NewRouter(),
+			name: "Test 3. Empty metric name.",
 			args: args{
 				mType:  "gauge",
 				mName:  "",
@@ -106,9 +204,7 @@ func TestUpdateMetrics(t *testing.T) {
 			wantCode: 404,
 		},
 		{
-			name:   "Test 4. Empty metric type.",
-			w:      httptest.NewRecorder(),
-			router: chi.NewRouter(),
+			name: "Test 4. Empty metric type.",
 			args: args{
 				mType:  "",
 				mName:  "PollCount",
@@ -133,13 +229,16 @@ func TestUpdateMetrics(t *testing.T) {
 				mock.EXPECT().UpdateCounter(tt.args.mName, tt.args.mValue).Times(1)
 			}
 
-			tt.router.Post("/update/{type}/{name}/{value}", nh.UpdateMetrics)
+			router := chi.NewRouter()
 
-			tt.req = httptest.NewRequest(http.MethodPost, makeReqURL(tt.args.mType, tt.args.mName, tt.args.mValue), nil)
+			router.Post("/update/{type}/{name}/{value}", nh.UpdateMetrics)
 
-			tt.router.ServeHTTP(tt.w, tt.req)
+			req := httptest.NewRequest(http.MethodPost, makeReqURL(tt.args.mType, tt.args.mName, tt.args.mValue), nil)
 
-			result := tt.w.Result()
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+
+			result := w.Result()
 
 			assert.Equal(t, tt.wantCode, result.StatusCode)
 
