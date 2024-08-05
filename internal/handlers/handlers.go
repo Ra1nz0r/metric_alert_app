@@ -12,6 +12,7 @@ import (
 	"github.com/ra1nz0r/metric_alert_app/internal/storage"
 )
 
+// Интерфейс для взаимодействия хендлеров хранилищем
 type HandlerService struct {
 	sMS storage.MetricService
 }
@@ -20,7 +21,8 @@ func NewHandlers(sMS storage.MetricService) *HandlerService {
 	return &HandlerService{sMS: sMS}
 }
 
-// Выводит все метрики из локального хранилища при GET запросе.
+// Собирает все метрики метрики из локального хранилища и выводит их в
+// результирующей карте при получении GET запроса.
 // Вызывает метод интерфейса, который возвращает копию локального хранилища.
 // Формат JSON, в виде {"Alloc":146464,"Frees":10,...}.
 func (hs *HandlerService) GetAllMetrics(w http.ResponseWriter, r *http.Request) {
@@ -54,10 +56,11 @@ func (hs *HandlerService) GetAllMetrics(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-// Выводит значение метрики при GET запросе по типу и имени.
-// Принимает интерфейс с реализованным методом получения
-// указанной метрики из хранилища.
-// Формат text, вид 12345.
+// При получении GET запроса вида "/value/{type}/{name}", берёт тип с названием метрики
+// и в ответе выводит её значение в "text/plain" формате, вид - 12345.
+// При успешном запросе возвращает http.StatusOK.
+// Выводит ошибку если тип указан неправильно или имя отсутствует в хранилище.
+// Вызывает метод интерфейса, который возвращает копию локального хранилища.
 func (hs *HandlerService) GetMetricByName(w http.ResponseWriter, r *http.Request) {
 	mType := chi.URLParam(r, "type")
 	mName := chi.URLParam(r, "name")
@@ -97,14 +100,13 @@ func (hs *HandlerService) GetMetricByName(w http.ResponseWriter, r *http.Request
 }
 
 // Обновляет значение метрик в зависимости от типа и имени метрики.
-// Тип gauge, float64 — новое значение должно замещет предыдущее.
-// Тип counter, int64 — новое значение должно добавляется к предыдущему, если какое-то значение уже было известно серверу.
+// Тип gauge, float64 — новое значение замещает предыдущее.
+// Тип counter, int64 — новое значение добавляется к предыдущему, если какое-то значение уже было известно серверу.
 // Принимает метрики по протоколу HTTP методом POST.
 // При успешном приёме возвращает http.StatusOK.
 // При попытке передать запрос без имени метрики возвращет http.StatusNotFound.
 // При попытке передать запрос с некорректным типом метрики или значением возвращет http.StatusBadRequest.
-// Принимает интерфейс, с созданным новым и инициализированным хранилищем,
-// где реализованы методы для работы с ним.
+// Вызывает методы интерфейса хранилища, где реализовано взаимодействие и работа с ним.
 func (hs *HandlerService) UpdateMetrics(w http.ResponseWriter, r *http.Request) {
 	mType := chi.URLParam(r, "type")
 	mName := chi.URLParam(r, "name")

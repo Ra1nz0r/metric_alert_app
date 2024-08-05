@@ -165,34 +165,42 @@ func TestGetMetricsByName(t *testing.T) {
 }
 
 func TestUpdateMetrics(t *testing.T) {
+
 	type args struct {
 		mType  string
 		mName  string
 		mValue any
 	}
 	tests := []struct {
-		name     string
-		args     args
-		reqURL   string
-		wantCode int
+		name        string
+		args        args
+		reqURL      string
+		wantCode    int
+		buildEXPECT func(store *mocks.MockMetricService, mName string, mValue any)
 	}{
 		{
-			name: "Test 1. Correct gauge metric.",
+			name: "Test 1. Gauge metric.",
 			args: args{
 				mType:  "gauge",
 				mName:  "Alloc",
 				mValue: float64(4.51),
 			},
 			wantCode: 200,
+			buildEXPECT: func(store *mocks.MockMetricService, mName string, mValue any) {
+				store.EXPECT().UpdateGauge(mName, mValue).Times(1)
+			},
 		},
 		{
-			name: "Test 2. Correct counter metric.",
+			name: "Test 2. Counter metric.",
 			args: args{
 				mType:  "counter",
 				mName:  "PollCount",
 				mValue: int64(23),
 			},
 			wantCode: 200,
+			buildEXPECT: func(store *mocks.MockMetricService, mName string, mValue any) {
+				store.EXPECT().UpdateCounter(mName, mValue).Times(1)
+			},
 		},
 		{
 			name: "Test 3. Empty metric name.",
@@ -201,7 +209,8 @@ func TestUpdateMetrics(t *testing.T) {
 				mName:  "",
 				mValue: 23,
 			},
-			wantCode: 404,
+			wantCode:    404,
+			buildEXPECT: func(store *mocks.MockMetricService, mName string, mValue any) {},
 		},
 		{
 			name: "Test 4. Empty metric type.",
@@ -210,7 +219,8 @@ func TestUpdateMetrics(t *testing.T) {
 				mName:  "PollCount",
 				mValue: 23,
 			},
-			wantCode: 400,
+			wantCode:    400,
+			buildEXPECT: func(store *mocks.MockMetricService, mName string, mValue any) {},
 		},
 	}
 	for _, tt := range tests {
@@ -221,13 +231,7 @@ func TestUpdateMetrics(t *testing.T) {
 			mock := mocks.NewMockMetricService(ctrl)
 			nh := NewHandlers(mock)
 
-			switch {
-			case tt.args.mType == "gauge" && tt.args.mName != "":
-				mock.EXPECT().UpdateGauge(tt.args.mName, tt.args.mValue).Times(1)
-
-			case tt.args.mType == "counter" && tt.args.mName != "":
-				mock.EXPECT().UpdateCounter(tt.args.mName, tt.args.mValue).Times(1)
-			}
+			tt.buildEXPECT(mock, tt.args.mName, tt.args.mValue)
 
 			router := chi.NewRouter()
 
@@ -236,6 +240,7 @@ func TestUpdateMetrics(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, makeReqURL(tt.args.mType, tt.args.mName, tt.args.mValue), nil)
 
 			w := httptest.NewRecorder()
+
 			router.ServeHTTP(w, req)
 
 			result := w.Result()
