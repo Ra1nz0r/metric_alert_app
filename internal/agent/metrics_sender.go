@@ -6,34 +6,21 @@ import (
 	"math/rand/v2"
 	"net/http"
 	"runtime"
+	"sync"
 	"time"
 
-	"github.com/ra1nz0r/metric_alert_app/internal/config"
 	"github.com/ra1nz0r/metric_alert_app/internal/storage"
 )
 
 type SenderStorage struct {
-	sMS storage.MetricService
+	sMS          storage.MetricService
+	wg           sync.WaitGroup
+	pollTicker   *time.Ticker
+	reportTicker *time.Ticker
 }
 
 func NewSender(sMS storage.MetricService) *SenderStorage {
 	return &SenderStorage{sMS: sMS}
-}
-
-// В бесконечном цикле, с указанными параметрами интервалов, обновляет метрики
-// в локальном хранилище и отправляет их на сервер.
-// Вызывает метод интерфейса, который возвращает копию локального хранилища.
-func (s *SenderStorage) SendMetricsOnServer(reportTicker, pollTicker *time.Ticker) {
-
-	select {
-	case <-pollTicker.C:
-		s.UpdateMetrics()
-
-	case <-reportTicker.C:
-		g, c := s.sMS.MakeStorageCopy()
-		MapSender(config.DefServerHost, g, c)
-	}
-
 }
 
 // По указанному хосту, отправляет через POST запрос все метрики из локального хранилища на сервер.

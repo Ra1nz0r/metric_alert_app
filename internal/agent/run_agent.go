@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"sync"
 	"time"
 
 	"github.com/ra1nz0r/metric_alert_app/internal/config"
@@ -17,21 +16,21 @@ func RunAgent() {
 	// Создаем интерфейс и новое хранилище.
 	ss := NewSender(storage.New())
 
-	// Обновляем и отправляем метрики на сервер.
-	var wg sync.WaitGroup
+	ss.pollTicker = time.NewTicker(time.Duration(config.DefPollInterval) * time.Second)
+	ss.reportTicker = time.NewTicker(time.Duration(config.DefReportInterval) * time.Second)
 
-	pollTicker := time.NewTicker(time.Duration(config.DefPollInterval) * time.Second)
-	reportTicker := time.NewTicker(time.Duration(config.DefReportInterval) * time.Second)
-
-	wg.Add(1)
+	ss.wg.Add(1)
 	go func() {
-		defer wg.Done()
+		defer ss.wg.Done()
 		for {
-
-			ss.SendMetricsOnServer(reportTicker, pollTicker)
-
+			select {
+			case <-ss.pollTicker.C:
+				ss.UpdateMetrics()
+			case <-ss.reportTicker.C:
+				g, c := ss.sMS.MakeStorageCopy()
+				MapSender(config.DefServerHost, g, c)
+			}
 		}
-
 	}()
-	wg.Wait()
+	ss.wg.Wait()
 }
