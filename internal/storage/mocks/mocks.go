@@ -33,21 +33,6 @@ func (m *MockMetricService) EXPECT() *MockMetricServiceMockRecorder {
 	return m.recorder
 }
 
-// GetMetricVal mocks base method.
-func (m *MockMetricService) GetMetricVal(mType, mName string) (any, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMetricVal", mType, mName)
-	ret0, _ := ret[0].(any)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetMetricVal indicates an expected call of GetMetricVal.
-func (mr *MockMetricServiceMockRecorder) GetMetricVal(mType, mName interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMetricVal", reflect.TypeOf((*MockMetricService)(nil).GetMetricVal), mType, mName)
-}
-
 // MakeStorageCopy mocks base method.
 func (m *MockMetricService) MakeStorageCopy() (*map[string]float64, *map[string]int64) {
 	m.ctrl.T.Helper()

@@ -1,0 +1,70 @@
+package agent
+
+import (
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/golang/mock/gomock"
+	"github.com/ra1nz0r/metric_alert_app/internal/storage/mocks"
+)
+
+func TestSender_UpdateMetrics(t *testing.T) {
+	t.Run("Test 1. Update metrics.", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
+
+		mock := mocks.NewMockMetricService(mockCtrl)
+
+		ss := NewSender(mock)
+
+		mock.EXPECT().UpdateGauge(gomock.Any(), gomock.Any()).Times(28)
+		mock.EXPECT().UpdateCounter(gomock.Any(), gomock.Any()).Times(1)
+
+		ss.UpdateMetrics()
+	})
+}
+
+func TestSender_SendMetricsOnServer(t *testing.T) {
+	type args struct {
+		reportInterval time.Duration
+		pollInterval   time.Duration
+	}
+	tests := []struct {
+		name        string
+		args        args
+		tGaugeStr   *map[string]float64
+		tCounterStr *map[string]int64
+	}{
+		{
+			name: "Test 1.",
+			args: args{
+				reportInterval: 2,
+				pollInterval:   1,
+			},
+			tGaugeStr:   &map[string]float64{},
+			tCounterStr: &map[string]int64{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			var wg sync.WaitGroup
+			wg.Add(1)
+			defer wg.Wait()
+
+			mock := mocks.NewMockMetricService(mockCtrl)
+
+			ss := NewSender(mock)
+
+			mock.EXPECT().MakeStorageCopy().Return(tt.tGaugeStr, tt.tCounterStr).Do(func() {
+				wg.Done()
+			})
+
+			ss.UpdateMetrics()
+			ss.SendMetricsOnServer(time.Duration(tt.args.reportInterval), time.Duration(tt.args.pollInterval))
+		})
+	}
+}

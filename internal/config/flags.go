@@ -43,7 +43,7 @@ func ServerFlags() {
 }
 
 // Конвертирует строковую перменную окружения в число.
-// При возникновении ошибки, вернет стандартной значение.
+// При возникновении ошибки, вернет стандартное значение.
 func stringToInt(env string, defaultVal int) int {
 	if value, err := strconv.Atoi(env); err == nil {
 		return value

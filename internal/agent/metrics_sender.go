@@ -6,7 +6,6 @@ import (
 	"math/rand/v2"
 	"net/http"
 	"runtime"
-	"sync"
 	"time"
 
 	"github.com/ra1nz0r/metric_alert_app/internal/config"
@@ -15,7 +14,6 @@ import (
 
 type SenderStorage struct {
 	sMS storage.MetricService
-	wg  sync.WaitGroup
 }
 
 func NewSender(sMS storage.MetricService) *SenderStorage {
@@ -24,27 +22,18 @@ func NewSender(sMS storage.MetricService) *SenderStorage {
 
 // В бесконечном цикле, с указанными параметрами интервалов, обновляет метрики
 // в локальном хранилище и отправляет их на сервер.
-// Принимает интерфейс, с созданным новым и инициализированным хранилищем,
-// где реализованы методы для работы с ним.
-func (s *SenderStorage) SendMetricsOnServer(reportInterval, pollInterval time.Duration) {
+// Вызывает метод интерфейса, который возвращает копию локального хранилища.
+func (s *SenderStorage) SendMetricsOnServer(reportTicker, pollTicker *time.Ticker) {
 
-	pollTicker := time.NewTicker(pollInterval * time.Second)
-	reportTicker := time.NewTicker(reportInterval * time.Second)
+	select {
+	case <-pollTicker.C:
+		s.UpdateMetrics()
 
-	s.wg.Add(1)
-	go func() {
-		defer s.wg.Done()
-		for {
-			select {
-			case <-pollTicker.C:
-				s.UpdateMetrics()
-			case <-reportTicker.C:
-				g, c := s.sMS.MakeStorageCopy()
-				MapSender(config.DefServerHost, g, c)
-			}
-		}
-	}()
-	s.wg.Wait()
+	case <-reportTicker.C:
+		g, c := s.sMS.MakeStorageCopy()
+		MapSender(config.DefServerHost, g, c)
+	}
+
 }
 
 // По указанному хосту, отправляет через POST запрос все метрики из локального хранилища на сервер.
@@ -76,8 +65,8 @@ func MakeRequest(resURL string) {
 	defer res.Body.Close()
 }
 
-// Обновляет метрики из пакета runtime. Принимает интерфейс,
-// где реализованы методы взаимодействия с хранилищем.
+// Обновляет метрики из пакета runtime.
+// Вызывает методы интерфейса хранилища, где реализовано взаимодействие и работа с ним.
 func (s *SenderStorage) UpdateMetrics() {
 	var rtm runtime.MemStats
 	runtime.ReadMemStats(&rtm)
