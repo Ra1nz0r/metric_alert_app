@@ -6,17 +6,12 @@ import (
 	"math/rand/v2"
 	"net/http"
 	"runtime"
-	"sync"
-	"time"
 
 	"github.com/ra1nz0r/metric_alert_app/internal/storage"
 )
 
 type SenderStorage struct {
-	sMS          storage.MetricService
-	wg           sync.WaitGroup
-	pollTicker   *time.Ticker
-	reportTicker *time.Ticker
+	sMS storage.MetricService
 }
 
 func NewSender(sMS storage.MetricService) *SenderStorage {
