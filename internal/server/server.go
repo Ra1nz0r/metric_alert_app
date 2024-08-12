@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/ra1nz0r/metric_alert_app/internal/config"
 	hd "github.com/ra1nz0r/metric_alert_app/internal/handlers"
+	"github.com/ra1nz0r/metric_alert_app/internal/logger"
 	"github.com/ra1nz0r/metric_alert_app/internal/storage"
 )
 
@@ -22,13 +23,23 @@ func Run() {
 
 	hs := hd.NewHandlers(storage.New())
 
+	zap, errLgr := logger.InitZapLog()
+	if errLgr != nil {
+		log.Fatal(errLgr)
+	}
+	defer zap.Sync()
+
+	sugar := zap.Sugar()
+
+	sugar.Infoln("Running handlers.")
+
 	log.Println("Running handlers.")
 	r.Handle("/", nil)
 
-	r.Post("/update/{type}/{name}/{value}", hs.UpdateMetrics)
+	r.Post("/update/{type}/{name}/{value}", logger.WithLogging(hs.UpdateMetrics, sugar))
 
-	r.Get("/", hs.GetAllMetrics)
-	r.Get("/value/{type}/{name}", hs.GetMetricByName)
+	r.Get("/", logger.WithLogging(hs.GetAllMetrics, sugar))
+	r.Get("/value/{type}/{name}", logger.WithLogging(hs.GetMetricByName, sugar))
 
 	config.ServerFlags()
 	log.Printf("Starting server on: '%s'", config.DefServerHost)

@@ -54,6 +54,7 @@ func (hs *HandlerService) GetAllMetrics(w http.ResponseWriter, r *http.Request) 
 		log.Print("failed attempt WRITE response")
 		return
 	}
+
 }
 
 // При получении GET запроса вида "/value/{type}/{name}", берёт тип с названием метрики

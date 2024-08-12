@@ -35,4 +35,6 @@ func RunAgent() {
 		}
 	}()
 	wg.Wait()
+	pollTicker.Stop()
+	reportTicker.Stop()
 }
