@@ -42,14 +42,12 @@ func WithLogging(h http.HandlerFunc, sugar *zap.SugaredLogger) http.HandlerFunc 
 		}
 		h.ServeHTTP(&lw, r)
 
-		duration := time.Since(start)
-
 		sugar.Infoln(
-			"uri", r.RequestURI,
-			"method", r.Method,
-			"status", responseData.status,
-			"duration", duration,
-			"size", responseData.size,
+			"URI:", r.RequestURI,
+			"Method:", r.Method,
+			"Status:", responseData.status,
+			"Duration:", time.Since(start),
+			"Size:", responseData.size,
 		)
 	})
 }

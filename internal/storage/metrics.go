@@ -4,8 +4,6 @@ import (
 	"sync"
 )
 
-//go:generate mockgen -source=internal/storage/metrics.go -destination=internal/storage/mocks/mocks.go -package=mocks
-
 // Интерфейс для взаимодействия с локальным хранилищем.
 type MetricService interface {
 	MakeStorageCopy() (*map[string]float64, *map[string]int64)
