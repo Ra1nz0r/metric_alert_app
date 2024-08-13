@@ -30,9 +30,9 @@ func Run() {
 	logger.Log.Info("Running handlers.")
 
 	log.Println("Running handlers.")
-	r.Use(WithLogging)
 
-	r.Handle("/", nil)
+	r.Use(WithLogging)
+	//r.Handle("/", nil)
 
 	r.Post("/update/{type}/{name}/{value}", hs.UpdateMetrics)
 
