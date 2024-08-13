@@ -10,10 +10,6 @@ import (
 
 var Log *zap.Logger = zap.NewNop()
 
-type ZapLog struct {
-	*zap.Logger
-}
-
 func Initialize(level string) error {
 	lvl, err := zap.ParseAtomicLevel(level)
 	if err != nil {
@@ -30,7 +26,7 @@ func Initialize(level string) error {
 
 	logger, err := config.Build()
 	if err != nil {
-		return fmt.Errorf("logger initialization error: %w", err)
+		return fmt.Errorf("logger build error: %w", err)
 	}
 
 	Log = logger

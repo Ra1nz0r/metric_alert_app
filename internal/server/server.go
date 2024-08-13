@@ -19,6 +19,8 @@ import (
 
 // Запускает агент, который будет принимать метрики от агента.
 func Run() {
+	config.ServerFlags()
+
 	r := chi.NewRouter()
 
 	hs := hd.NewHandlers(storage.New())
@@ -29,17 +31,13 @@ func Run() {
 
 	logger.Log.Info("Running handlers.")
 
-	log.Println("Running handlers.")
-
 	r.Use(WithLogging)
-	//r.Handle("/", nil)
 
 	r.Post("/update/{type}/{name}/{value}", hs.UpdateMetrics)
 
 	r.Get("/", hs.GetAllMetrics)
 	r.Get("/value/{type}/{name}", hs.GetMetricByName)
 
-	config.ServerFlags()
 	log.Printf("Starting server on: '%s'", config.DefServerHost)
 
 	srv := http.Server{
