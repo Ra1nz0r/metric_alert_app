@@ -10,6 +10,7 @@ var (
 	DefServerHost     = "0.0.0.0:8080" // стандартный адрес для агента и сервера
 	DefReportInterval = 10             // стандартная частота отправки метрик на сервер для агента в секундах
 	DefPollInterval   = 2              // стандартная частоты опроса метрик для агента в секундах
+	DefLogLevel       = "info"         // стандартный уровень логирования
 )
 
 // Создаёт флаги для запуска агента, если в терминале переданы переменные окружения,
@@ -24,10 +25,14 @@ func AgentFlags() {
 		DefServerHost = envServerAddress
 	}
 	if envReportInterval := os.Getenv("REPORT_INTERVAL"); envReportInterval != "" {
-		DefReportInterval = stringToInt(envReportInterval, DefReportInterval)
+		if value, err := strconv.Atoi(envReportInterval); err == nil {
+			DefReportInterval = value
+		}
 	}
 	if envPollInterval := os.Getenv("POLL_INTERVAL"); envPollInterval != "" {
-		DefPollInterval = stringToInt(envPollInterval, DefPollInterval)
+		if value, err := strconv.Atoi(envPollInterval); err == nil {
+			DefPollInterval = value
+		}
 	}
 }
 
@@ -35,18 +40,13 @@ func AgentFlags() {
 // то приоритет будет отдаваться им.
 func ServerFlags() {
 	flag.StringVar(&DefServerHost, "a", DefServerHost, "address and port to run server/agent")
+	flag.StringVar(&DefLogLevel, "l", DefLogLevel, "set log level")
 	flag.Parse()
 
 	if envServerAddress := os.Getenv("ADDRESS"); envServerAddress != "" {
 		DefServerHost = envServerAddress
 	}
-}
-
-// Конвертирует строковую перменную окружения в число.
-// При возникновении ошибки, вернет стандартное значение.
-func stringToInt(env string, defaultVal int) int {
-	if value, err := strconv.Atoi(env); err == nil {
-		return value
+	if envLogLevel := os.Getenv("LOG_LEVEL"); envLogLevel != "" {
+		DefLogLevel = envLogLevel
 	}
-	return defaultVal
 }

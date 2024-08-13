@@ -23,23 +23,21 @@ func Run() {
 
 	hs := hd.NewHandlers(storage.New())
 
-	zap, errLgr := logger.InitZapLog()
-	if errLgr != nil {
-		log.Fatal(errLgr)
+	if errLog := logger.Initialize(config.DefLogLevel); errLog != nil {
+		log.Fatal(errLog)
 	}
-	defer zap.Sync()
 
-	sugar := zap.Sugar()
-
-	sugar.Infoln("Running handlers.")
+	logger.Log.Info("Running handlers.")
 
 	log.Println("Running handlers.")
+	r.Use(WithLogging)
+
 	r.Handle("/", nil)
 
-	r.Post("/update/{type}/{name}/{value}", logger.WithLogging(hs.UpdateMetrics, sugar))
+	r.Post("/update/{type}/{name}/{value}", hs.UpdateMetrics)
 
-	r.Get("/", logger.WithLogging(hs.GetAllMetrics, sugar))
-	r.Get("/value/{type}/{name}", logger.WithLogging(hs.GetMetricByName, sugar))
+	r.Get("/", hs.GetAllMetrics)
+	r.Get("/value/{type}/{name}", hs.GetMetricByName)
 
 	config.ServerFlags()
 	log.Printf("Starting server on: '%s'", config.DefServerHost)
@@ -69,4 +67,50 @@ func Run() {
 		log.Fatal("HTTP shutdown error", errShut)
 	}
 	log.Println("Graceful shutdown complete.")
+}
+
+func WithLogging(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		responseData := &responseData{
+			status: 0,
+			size:   0,
+		}
+
+		lw := logginResponseWriter{
+			ResponseWriter: w,
+			responseData:   responseData,
+		}
+		h.ServeHTTP(&lw, r)
+
+		logger.Log.Sugar().Infoln(
+			"URI:", r.RequestURI,
+			"Method:", r.Method,
+			"Status:", responseData.status,
+			"Duration:", time.Since(start),
+			"Size:", responseData.size,
+		)
+	})
+}
+
+type responseData struct {
+	status int
+	size   int
+}
+
+type logginResponseWriter struct {
+	http.ResponseWriter
+	responseData *responseData
+}
+
+func (r *logginResponseWriter) Write(b []byte) (int, error) {
+	size, err := r.ResponseWriter.Write(b)
+	r.responseData.size += size
+	return size, err
+}
+
+func (r *logginResponseWriter) WriteHeader(statusCode int) {
+	r.ResponseWriter.WriteHeader(statusCode)
+	r.responseData.status = statusCode
 }
