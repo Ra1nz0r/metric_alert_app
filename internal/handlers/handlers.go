@@ -156,7 +156,7 @@ func (hs *HandlerService) WithLogging(h http.Handler) http.Handler {
 		}
 		h.ServeHTTP(&lw, r)
 
-		logger.Log.Sugar().Infoln(
+		logger.Zap.Info(
 			"URI:", r.RequestURI,
 			"Method:", r.Method,
 			"Status:", responseData.status,

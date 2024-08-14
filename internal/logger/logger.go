@@ -8,7 +8,17 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-var Log *zap.Logger = zap.NewNop()
+type ZapService interface {
+	Info(fields ...interface{})
+}
+
+type ZapStorage struct {
+	*zap.Logger
+}
+
+var Zap ZapService = &ZapStorage{zap.NewNop()}
+
+//var Log *zap.Logger = zap.NewNop()
 
 func Initialize(level string) error {
 	lvl, err := zap.ParseAtomicLevel(level)
@@ -29,16 +39,19 @@ func Initialize(level string) error {
 		return fmt.Errorf("logger build error: %w", err)
 	}
 
-	Log = logger
+	Zap = &ZapStorage{logger}
 
 	return nil
 }
 
-func Info(message string, fields ...zap.Field) {
-	Log.Info(message, fields...)
+func (z *ZapStorage) Info(fields ...interface{}) {
+
+	z.Logger.Sugar().Infoln(fields...)
+
+	//Log.Info(message, fields...)
 }
 
-func Debug(message string, fields ...zap.Field) {
+/*func Debug(message string, fields ...zap.Field) {
 	Log.Debug(message, fields...)
 }
 
@@ -48,4 +61,4 @@ func Error(message string, fields ...zap.Field) {
 
 func Fatal(message string, fields ...zap.Field) {
 	Log.Fatal(message, fields...)
-}
+}*/

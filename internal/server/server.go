@@ -28,10 +28,9 @@ func Run() {
 	if errLog := logger.Initialize(config.DefLogLevel); errLog != nil {
 		log.Fatal(errLog)
 	}
+	logger.Zap.Info("sdfsdfsdf")
 
-	logger.Info("dfkdsfkl")
-
-	logger.Info("Running handlers.")
+	//logger.Info("Running handlers.")
 
 	r.Use(hs.WithLogging)
 
