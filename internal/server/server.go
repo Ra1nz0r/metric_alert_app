@@ -31,7 +31,7 @@ func Run() {
 
 	logger.Log.Info("Running handlers.")
 
-	r.Use(WithLogging)
+	r.Use(hs.WithLogging)
 
 	r.Post("/update/{type}/{name}/{value}", hs.UpdateMetrics)
 
@@ -65,50 +65,4 @@ func Run() {
 		log.Fatal("HTTP shutdown error", errShut)
 	}
 	log.Println("Graceful shutdown complete.")
-}
-
-func WithLogging(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-
-		responseData := &responseData{
-			status: 0,
-			size:   0,
-		}
-
-		lw := logginResponseWriter{
-			ResponseWriter: w,
-			responseData:   responseData,
-		}
-		h.ServeHTTP(&lw, r)
-
-		logger.Log.Sugar().Infoln(
-			"URI:", r.RequestURI,
-			"Method:", r.Method,
-			"Status:", responseData.status,
-			"Duration:", time.Since(start),
-			"Size:", responseData.size,
-		)
-	})
-}
-
-type responseData struct {
-	status int
-	size   int
-}
-
-type logginResponseWriter struct {
-	http.ResponseWriter
-	responseData *responseData
-}
-
-func (r *logginResponseWriter) Write(b []byte) (int, error) {
-	size, err := r.ResponseWriter.Write(b)
-	r.responseData.size += size
-	return size, err
-}
-
-func (r *logginResponseWriter) WriteHeader(statusCode int) {
-	r.ResponseWriter.WriteHeader(statusCode)
-	r.responseData.status = statusCode
 }
