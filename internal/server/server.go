@@ -29,7 +29,9 @@ func Run() {
 		log.Fatal(errLog)
 	}
 
-	logger.Log.Info("Running handlers.")
+	logger.Info("dfkdsfkl")
+
+	logger.Info("Running handlers.")
 
 	r.Use(hs.WithLogging)
 
