@@ -10,6 +10,8 @@ import (
 
 type ZapService interface {
 	Info(fields ...interface{})
+	Error(fields ...interface{})
+	Fatal(fields ...interface{})
 }
 
 type ZapStorage struct {
@@ -17,8 +19,6 @@ type ZapStorage struct {
 }
 
 var Zap ZapService = &ZapStorage{zap.NewNop()}
-
-//var Log *zap.Logger = zap.NewNop()
 
 func Initialize(level string) error {
 	lvl, err := zap.ParseAtomicLevel(level)
@@ -33,8 +33,9 @@ func Initialize(level string) error {
 	config.EncoderConfig.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 		enc.AppendString(t.Format("2006-01-02 15:04:05"))
 	}
+	config.DisableStacktrace = true
 
-	logger, err := config.Build()
+	logger, err := config.Build(zap.AddCaller(), zap.AddCallerSkip(1))
 	if err != nil {
 		return fmt.Errorf("logger build error: %w", err)
 	}
@@ -45,20 +46,13 @@ func Initialize(level string) error {
 }
 
 func (z *ZapStorage) Info(fields ...interface{}) {
-
 	z.Logger.Sugar().Infoln(fields...)
-
-	//Log.Info(message, fields...)
 }
 
-/*func Debug(message string, fields ...zap.Field) {
-	Log.Debug(message, fields...)
+func (z *ZapStorage) Error(fields ...interface{}) {
+	z.Logger.Sugar().Errorln(fields...)
 }
 
-func Error(message string, fields ...zap.Field) {
-	Log.Error(message, fields...)
+func (z *ZapStorage) Fatal(fields ...interface{}) {
+	z.Logger.Sugar().Fatalln(fields...)
 }
-
-func Fatal(message string, fields ...zap.Field) {
-	Log.Fatal(message, fields...)
-}*/

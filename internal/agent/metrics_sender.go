@@ -2,11 +2,11 @@ package agent
 
 import (
 	"fmt"
-	"log"
 	"math/rand/v2"
 	"net/http"
 	"runtime"
 
+	"github.com/ra1nz0r/metric_alert_app/internal/logger"
 	"github.com/ra1nz0r/metric_alert_app/internal/storage"
 )
 
@@ -35,13 +35,13 @@ func MapSender(host string, gauge *map[string]float64, counter *map[string]int64
 func MakeRequest(resURL string) {
 	req, err := http.NewRequest("POST", resURL, nil)
 	if err != nil {
-		log.Fatal(err)
+		logger.Zap.Fatal(err)
 	}
 
 	client := &http.Client{}
 	res, err := client.Do(req)
 	if err != nil {
-		fmt.Println(err)
+		logger.Zap.Error(err)
 		return
 	}
 	defer res.Body.Close()
