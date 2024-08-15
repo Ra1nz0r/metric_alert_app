@@ -32,13 +32,16 @@ func Run() {
 
 	logger.Zap.Info("Running handlers.")
 
-	r.Use(hs.WithRequestDetails)
-	r.Use(hs.WithResponseDetails)
+	r.Group(func(r chi.Router) {
+		r.Use(hs.WithRequestDetails)
+		r.Post("/update/{type}/{name}/{value}", hs.UpdateMetrics)
+	})
 
-	r.Post("/update/{type}/{name}/{value}", hs.UpdateMetrics)
-
-	r.Get("/", hs.GetAllMetrics)
-	r.Get("/value/{type}/{name}", hs.GetMetricByName)
+	r.Group(func(r chi.Router) {
+		r.Use(hs.WithResponseDetails)
+		r.Get("/", hs.GetAllMetrics)
+		r.Get("/value/{type}/{name}", hs.GetMetricByName)
+	})
 
 	logger.Zap.Info(fmt.Sprintf("Starting server on: '%s'", config.DefServerHost))
 
