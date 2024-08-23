@@ -20,7 +20,7 @@ func RunAgent() {
 		log.Fatal(errLog)
 	}
 
-	// Создаем интерфейс и новое хранилище
+	// Создаем интерфейс и новое хранилище.
 	ss := NewSender(storage.New())
 
 	pollTicker := time.NewTicker(time.Duration(config.DefPollInterval) * time.Second)
