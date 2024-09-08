@@ -1,10 +1,12 @@
 package agent
 
 import (
+	"log"
 	"sync"
 	"time"
 
 	"github.com/ra1nz0r/metric_alert_app/internal/config"
+	"github.com/ra1nz0r/metric_alert_app/internal/logger"
 	"github.com/ra1nz0r/metric_alert_app/internal/storage"
 )
 
@@ -13,6 +15,10 @@ import (
 func RunAgent() {
 	// Запускаем флаги и переменные окружения для агента.
 	config.AgentFlags()
+
+	if errLog := logger.Initialize(config.DefLogLevel); errLog != nil {
+		log.Fatal(errLog)
+	}
 
 	// Создаем интерфейс и новое хранилище.
 	ss := NewSender(storage.New())
@@ -35,4 +41,6 @@ func RunAgent() {
 		}
 	}()
 	wg.Wait()
+	pollTicker.Stop()
+	reportTicker.Stop()
 }

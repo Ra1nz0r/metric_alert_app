@@ -21,6 +21,11 @@ tasks:
     desc: "Runs all test files without cache and with info."
     cmds:
       - go test -v ./... -count=1
+
+  mockgen: # название задачи для запуска
+    desc: "Generates mock files for the storage."
+    cmds:
+      - mockgen -source=internal/storage/metrics.go -destination=internal/storage/mocks/mocks.go -package=mocks
       
   d_build: # название задачи для запуска
     desc: "Build docker container."

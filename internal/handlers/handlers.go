@@ -3,12 +3,13 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/ra1nz0r/metric_alert_app/internal/logger"
 	"github.com/ra1nz0r/metric_alert_app/internal/storage"
 )
 
@@ -40,9 +41,8 @@ func (hs *HandlerService) GetAllMetrics(w http.ResponseWriter, r *http.Request) 
 
 	ans, errJSON := json.Marshal(res)
 	if errJSON != nil {
-		http.Error(w, errJSON.Error(), http.StatusInternalServerError)
-		//logerr.ErrEvent("failed attempt json-marshal response", errJSON)
-		//w.WriteHeader(http.StatusInternalServerError)
+		logger.Zap.Error(fmt.Errorf("failed attempt json-marshal response: %w", errJSON))
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
@@ -51,9 +51,10 @@ func (hs *HandlerService) GetAllMetrics(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusOK)
 
 	if _, errWrite := w.Write([]byte(ans)); errWrite != nil {
-		log.Print("failed attempt WRITE response")
+		logger.Zap.Error("failed attempt WRITE response")
 		return
 	}
+
 }
 
 // При получении GET запроса вида "/value/{type}/{name}", берёт тип с названием метрики
@@ -94,7 +95,7 @@ func (hs *HandlerService) GetMetricByName(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusOK)
 
 	if _, errWrite := w.Write([]byte(fmt.Sprintf("%v", resVal))); errWrite != nil {
-		log.Print("failed attempt WRITE response")
+		logger.Zap.Error("failed attempt WRITE response")
 		return
 	}
 }
@@ -136,4 +137,52 @@ func (hs *HandlerService) UpdateMetrics(w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.WriteHeader(codeStatus)
+}
+
+func (hs *HandlerService) WithRequestDetails(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		h.ServeHTTP(w, r)
+
+		logger.Zap.Info(
+			"URI:", r.RequestURI,
+			"Method:", r.Method,
+			"Duration:", time.Since(start),
+		)
+	})
+}
+
+func (hs *HandlerService) WithResponseDetails(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		lw := logginResponseWriter{
+			ResponseWriter: w,
+			status:         0,
+			size:           0,
+		}
+
+		h.ServeHTTP(&lw, r)
+
+		logger.Zap.Info(
+			"Status:", lw.status,
+			"Size:", lw.size,
+		)
+	})
+}
+
+type logginResponseWriter struct {
+	http.ResponseWriter
+	status int
+	size   int
+}
+
+func (r *logginResponseWriter) Write(b []byte) (int, error) {
+	size, err := r.ResponseWriter.Write(b)
+	r.size += size
+	return size, err
+}
+
+func (r *logginResponseWriter) WriteHeader(statusCode int) {
+	r.ResponseWriter.WriteHeader(statusCode)
+	r.status = statusCode
 }

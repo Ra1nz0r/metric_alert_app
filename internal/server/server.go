@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -13,25 +14,36 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/ra1nz0r/metric_alert_app/internal/config"
 	hd "github.com/ra1nz0r/metric_alert_app/internal/handlers"
+	"github.com/ra1nz0r/metric_alert_app/internal/logger"
 	"github.com/ra1nz0r/metric_alert_app/internal/storage"
 )
 
 // Запускает агент, который будет принимать метрики от агента.
 func Run() {
+	config.ServerFlags()
+
 	r := chi.NewRouter()
 
 	hs := hd.NewHandlers(storage.New())
 
-	log.Println("Running handlers.")
-	r.Handle("/", nil)
+	if errLog := logger.Initialize(config.DefLogLevel); errLog != nil {
+		log.Fatal(errLog)
+	}
 
-	r.Post("/update/{type}/{name}/{value}", hs.UpdateMetrics)
+	logger.Zap.Info("Running handlers.")
 
-	r.Get("/", hs.GetAllMetrics)
-	r.Get("/value/{type}/{name}", hs.GetMetricByName)
+	r.Group(func(r chi.Router) {
+		r.Use(hs.WithRequestDetails)
+		r.Post("/update/{type}/{name}/{value}", hs.UpdateMetrics)
+	})
 
-	config.ServerFlags()
-	log.Printf("Starting server on: '%s'", config.DefServerHost)
+	r.Group(func(r chi.Router) {
+		r.Use(hs.WithResponseDetails)
+		r.Get("/", hs.GetAllMetrics)
+		r.Get("/value/{type}/{name}", hs.GetMetricByName)
+	})
+
+	logger.Zap.Info(fmt.Sprintf("Starting server on: '%s'", config.DefServerHost))
 
 	srv := http.Server{
 		Addr:         config.DefServerHost,
@@ -42,9 +54,9 @@ func Run() {
 
 	go func() {
 		if errListn := srv.ListenAndServe(); !errors.Is(errListn, http.ErrServerClosed) {
-			log.Fatal("HTTP server error ", errListn)
+			logger.Zap.Fatal("HTTP server error:", errListn)
 		}
-		log.Println("Stopped serving new connections.")
+		logger.Zap.Info("Stopped serving new connections.")
 	}()
 
 	sigChan := make(chan os.Signal, 1)
@@ -55,7 +67,7 @@ func Run() {
 	defer shutdownRelease()
 
 	if errShut := srv.Shutdown(shutdownCtx); errShut != nil {
-		log.Fatal("HTTP shutdown error", errShut)
+		logger.Zap.Fatal("HTTP shutdown error", errShut)
 	}
-	log.Println("Graceful shutdown complete.")
+	logger.Zap.Info("Graceful shutdown complete.")
 }
